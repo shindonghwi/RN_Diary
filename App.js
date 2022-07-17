@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import React, { useState } from "react";
 import Navigator from "./Navigator";
 import { DBContext } from "./context";
+import { setTestDeviceIDAsync } from "expo-ads-admob";
 
 const FeelingSchema = {
   name: "Feeling",
@@ -14,13 +15,13 @@ const FeelingSchema = {
   },
   primaryKey: "_id",
 };
-
 export default function App() {
   const [ready, setReady] = useState(false);
   const [realm, setRealm] = useState(null);
   const startLoading = async () => {
+    await setTestDeviceIDAsync("EMULATOR");
     const connection = await Realm.open({
-      path: "wolfDiaryDB",
+      path: "nomadDiaryDB",
       schema: [FeelingSchema],
     });
     setRealm(connection);

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Alert } from "react-native";
 import styled from "styled-components/native";
-import colors from "../colors";
 import { useDB } from "../context";
+import colors from "../colors";
+import { AdMobRewarded } from "expo-ads-admob";
 
 const View = styled.View`
   background-color: ${colors.bgColor};
@@ -46,7 +47,7 @@ const Emotions = styled.View`
 const Emotion = styled.TouchableOpacity`
   background-color: white;
   box-shadow: 1px 1px 3px rgba(41, 30, 95, 0.2);
-  padding: 5px;
+  padding: 10px;
   border-radius: 10px;
   border-width: 1px;
   border-color: ${(props) =>
@@ -64,20 +65,29 @@ const Write = ({ navigation: { goBack } }) => {
   const [feelings, setFeelings] = useState("");
   const onChangeText = (text) => setFeelings(text);
   const onEmotionPress = (face) => setEmotion(face);
-  const onSubmit = () => {
+
+  const onSubmit = async () => {
     if (feelings === "" || selectedEmotion == null) {
       return Alert.alert("Please complete form.");
     }
+    await AdMobRewarded.setAdUnitID("ca-app-pub-3940256099942544/1712485313");
+    await AdMobRewarded.requestAdAsync();
+    await AdMobRewarded.showAdAsync();
 
-    realm.write(() => {
-      const feeling = realm.create("Feeling", {
-        _id: Date.now(),
-        emotion: selectedEmotion,
-        message: feelings,
+    AdMobRewarded.removeAllListeners();
+
+    AdMobRewarded.addEventListener("rewardedVideoUserDidEarnReward", () => {
+      AdMobRewarded.addEventListener("rewardedVideoDidDismiss", () => {
+        realm.write(() => {
+          realm.create("Feeling", {
+            _id: Date.now(),
+            emotion: selectedEmotion,
+            message: feelings,
+          });
+        });
+        goBack();
       });
-      console.log(feeling);
     });
-    goBack();
   };
   return (
     <View>
