@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components/native";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "../colors";
+import { useDB } from "../context";
+import { FlatList, TouchableOpacity, LayoutAnimation } from "react-native";
 
 const View = styled.View`
   flex: 1;
@@ -28,12 +30,72 @@ const Btn = styled.TouchableOpacity`
   box-shadow: 1px 1px 50px rgba(255, 255, 255, 0.5); // for iOS
 `;
 
-const Home = ({ navigation: { navigate } }) => (
-  <View>
-    <Title>My journal</Title>
-    <Btn onPress={() => navigate("Write")}>
-      <Ionicons name="add" color="white" size={40} />
-    </Btn>
-  </View>
-);
+const Record = styled.View`
+  background-color: ${colors.cardColor};
+  flex-direction: row;
+  padding: 10px 20px;
+  align-items: center;
+  border-radius: 10px;
+`;
+
+const Emotion = styled.Text`
+  font-size: 24px;
+  margin-right: 10px;
+`;
+const Message = styled.Text`
+  font-size: 18px;
+  font-weight: 400;
+`;
+
+const Separator = styled.View`
+  height: 10px;
+`;
+
+const Home = ({ navigation: { navigate } }) => {
+  const realm = useDB();
+
+  const [feelings, setFeelings] = useState([]);
+
+  useEffect(() => {
+    const feelings = realm.objects("Feeling");
+    feelings.addListener((feelings, changes) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+      setFeelings(feelings.sorted("_id", true));
+    });
+    return () => {
+      feelings.removeAllListeners();
+    };
+  }, []);
+
+  const onPress = (id) => {
+    realm.write(() => {
+      const feeling = realm.objectForPrimaryKey("Feeling", id);
+      console.log(feeling);
+      realm.delete(feeling);
+    });
+  };
+
+  return (
+    <View>
+      <Title>My journal</Title>
+      <FlatList
+        data={feelings}
+        contentContainerStyle={{ paddingVertical: 10 }}
+        ItemSeparatorComponent={Separator}
+        keyExtractor={(feeling) => feeling._id + ""}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => onPress(item._id)}>
+            <Record>
+              <Emotion>{item.emotion}</Emotion>
+              <Message>{item.message}</Message>
+            </Record>
+          </TouchableOpacity>
+        )}
+      />
+      <Btn onPress={() => navigate("Write")}>
+        <Ionicons name="add" color="white" size={40} />
+      </Btn>
+    </View>
+  );
+};
 export default Home;
